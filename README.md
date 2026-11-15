@@ -47,6 +47,14 @@ This is not possible. WoW Forever forbids the combat log events to addons.
 An addon that registers one of them gets the "blocked from an action" message.
 Thus the addon shows only your own fire.
 
+## The minimap button
+
+- A left click hides the box. The countdown continues. A second left click shows the box again.
+- A new fire shows the box again.
+- A right click shows the box so that you can move it. A second right click locks it.
+- Point at the button to see the remaining time.
+- Drag the button to move it.
+
 ## Commands
 
 | Command | Function |
@@ -56,6 +64,8 @@ Thus the addon shows only your own fire.
 | `/cft duration <seconds>` | Sets the life of a fire. |
 | `/cft unlock` | Releases the bar. Move it with the left mouse button. |
 | `/cft lock` | Locks the bar. The empty bar goes out of view. |
+| `/cft hide` and `/cft show` | Hides or shows the box. The countdown continues. |
+| `/cft minimap` | Shows or hides the minimap button. |
 | `/cft reset` | Puts the position and the settings back to the defaults. |
 | `/cft stop` | Stops all countdowns. |
 | `/cft mark` | The first use stores the time. The second use prints the elapsed seconds. |

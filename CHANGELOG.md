@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 (2026-11-15)
+
+- A minimap button. A left click hides or shows the box. The countdown continues while the box is hidden.
+- A new fire shows the box again.
+- A right click on the button shows the box so that you can move it, or locks it.
+- The tooltip of the button shows the remaining time.
+- `/cft hide`, `/cft show`, and `/cft minimap`.
+
 ## 0.1.0 (2026-11-14)
 
 - First version.

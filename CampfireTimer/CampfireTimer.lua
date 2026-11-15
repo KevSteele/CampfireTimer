@@ -195,6 +195,8 @@ local function CreateBars()
 	ApplyLock()
 end
 
+local UpdateMinimapButton -- set in the minimap button section
+
 local function Refresh()
 	local now = GetTime()
 	for key, bar in pairs(bars) do
@@ -203,9 +205,15 @@ local function Refresh()
 			-- The countdown is at zero.
 			timers[key] = nil
 			timer = nil
-			if key == "own" then db.ownEnd = nil end
+			if key == "own" then
+				db.ownEnd = nil
+				db.dismissed = nil
+			end
 		end
-		if timer then
+		if timer and key == "own" and db.dismissed then
+			-- You hid the box. The countdown continues.
+			bar:Hide()
+		elseif timer then
 			local remaining = timer.finish - now
 			bar:SetMinMaxValues(0, timer.duration)
 			bar:SetValue(remaining)
@@ -223,6 +231,7 @@ local function Refresh()
 			bar:Hide()
 		end
 	end
+	if UpdateMinimapButton then UpdateMinimapButton() end
 end
 
 local function StartTimer(key, seconds, label)
@@ -231,7 +240,121 @@ local function StartTimer(key, seconds, label)
 		duration = seconds,
 		label = label,
 	}
+	-- A new fire shows the box again.
+	if key == "own" then db.dismissed = nil end
 	Refresh()
+end
+
+-- Hides or shows the box of your fire. The countdown continues.
+local function ToggleBox()
+	if not timers.own then
+		Print("no campfire countdown runs.")
+		return
+	end
+	db.dismissed = not db.dismissed or nil
+	Refresh()
+	if db.dismissed then
+		Print("the box is hidden. The countdown continues: " .. FormatTime(timers.own.finish - GetTime()) .. ".")
+	end
+end
+
+local function SetLocked(locked)
+	db.locked = locked
+	-- To move the box, you must see it.
+	if not locked then db.dismissed = nil end
+	bars.own:EnableMouse(not locked)
+	Refresh()
+	Print(locked and "the bar is locked. It shows only during a countdown."
+		or "the bar is not locked. Move it with the left mouse button.")
+end
+
+------------------------------------------------------------------------
+-- The minimap button
+------------------------------------------------------------------------
+
+local ICON = "Interface\\Icons\\Spell_Fire_Fire"
+local minimapButton
+
+local function PlaceMinimapButton()
+	local angle = math.rad(db.minimapAngle or 225)
+	local radius = (Minimap:GetWidth() / 2) + 8
+	minimapButton:ClearAllPoints()
+	minimapButton:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * radius, math.sin(angle) * radius)
+end
+
+local function ShowButtonTooltip(self)
+	GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+	GameTooltip:AddLine("Campfire Timer", 1, 1, 1)
+	if timers.own then
+		GameTooltip:AddLine("Campfire: " .. FormatTime(timers.own.finish - GetTime()), 1, 0.82, 0)
+		GameTooltip:AddLine(db.dismissed and "Left-click: show the box." or "Left-click: hide the box.", 0.8, 0.8, 0.8)
+	else
+		GameTooltip:AddLine("No campfire countdown.", 0.8, 0.8, 0.8)
+	end
+	GameTooltip:AddLine(db.locked and "Right-click: show the box to move it." or "Right-click: lock the box.", 0.8, 0.8, 0.8)
+	GameTooltip:AddLine("Drag: move this button.", 0.8, 0.8, 0.8)
+	GameTooltip:Show()
+end
+
+UpdateMinimapButton = function()
+	if not minimapButton then return end
+	-- The icon has full colour while the box of a countdown shows.
+	local lit = timers.own ~= nil and not db.dismissed
+	minimapButton.icon:SetDesaturated(not lit)
+	minimapButton:SetAlpha(timers.own and 1 or 0.7)
+	if GameTooltip:IsOwned(minimapButton) then ShowButtonTooltip(minimapButton) end
+end
+
+local function BuildMinimapButton()
+	if minimapButton or not Minimap then return end
+	local b = CreateFrame("Button", "CampfireTimerMinimapButton", Minimap)
+	b:SetSize(32, 32)
+	b:SetFrameStrata("MEDIUM")
+	b:SetFrameLevel(8)
+	local bg = b:CreateTexture(nil, "BACKGROUND")
+	bg:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
+	bg:SetSize(25, 25)
+	bg:SetPoint("TOPLEFT", 2, -4)
+	b.icon = b:CreateTexture(nil, "ARTWORK")
+	b.icon:SetTexture(ICON)
+	b.icon:SetSize(22, 22)
+	b.icon:SetPoint("TOPLEFT", 6, -5)
+	if b.icon.AddMaskTexture and b.CreateMaskTexture then
+		local mask = b:CreateMaskTexture()
+		mask:SetAllPoints(b.icon)
+		mask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+		b.icon:AddMaskTexture(mask)
+	end
+	local border = b:CreateTexture(nil, "OVERLAY", nil, 1)
+	border:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+	border:SetSize(54, 54)
+	border:SetPoint("TOPLEFT")
+	b:SetHighlightTexture("Interface\\Minimap\\UI-Minimap-ZoomButton-Highlight", "ADD")
+	b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+	b:RegisterForDrag("LeftButton")
+	b:SetScript("OnDragStart", function(self)
+		self:SetScript("OnUpdate", function()
+			local mx, my = Minimap:GetCenter()
+			local cx, cy = GetCursorPosition()
+			local scale = Minimap:GetEffectiveScale()
+			db.minimapAngle = math.deg(math.atan2(cy / scale - my, cx / scale - mx))
+			PlaceMinimapButton()
+		end)
+	end)
+	b:SetScript("OnDragStop", function(self) self:SetScript("OnUpdate", nil) end)
+	b:SetScript("OnClick", function(_, button)
+		if button == "RightButton" then
+			SetLocked(not db.locked)
+		else
+			ToggleBox()
+		end
+	end)
+	b:SetScript("OnEnter", ShowButtonTooltip)
+	b:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	minimapButton = b
+	PlaceMinimapButton()
+	b:SetShown(db.minimap ~= false)
+	UpdateMinimapButton()
 end
 
 local function StartOwnFire()
@@ -289,6 +412,9 @@ local function OnLoad()
 			db.ownEnd = nil
 		end
 	end
+	if not timers.own then db.dismissed = nil end
+	-- pcall: an error in the button must not stop the countdown.
+	pcall(BuildMinimapButton)
 	Refresh()
 end
 
@@ -328,6 +454,8 @@ local function PrintHelp()
 	print("  /cft duration <seconds> - set the life of a fire (now " .. db.duration .. " s)")
 	print("  /cft unlock - show the bar, so that you can move it")
 	print("  /cft lock - lock the bar. Then it shows only during a countdown")
+	print("  /cft hide, /cft show - hide or show the box. The countdown continues")
+	print("  /cft minimap - show or hide the minimap button")
 	print("  /cft reset - put the bar and the settings back to the defaults")
 	print("  /cft stop - stop all countdowns")
 	print("  /cft mark - use two times to measure a time")
@@ -381,22 +509,34 @@ commands.duration = function(arg)
 	Print("the duration is now " .. db.duration .. " seconds (" .. FormatTime(db.duration) .. ").")
 end
 
-commands.lock = function()
-	db.locked = true
-	ApplyLock()
-	Refresh()
-	Print("the bar is locked. It shows only during a countdown.")
+commands.lock = function() SetLocked(true) end
+commands.unlock = function() SetLocked(false) end
+
+commands.hide = function()
+	if timers.own and db.dismissed then
+		Print("the box is hidden already.")
+	else
+		ToggleBox()
+	end
 end
 
-commands.unlock = function()
-	db.locked = false
-	ApplyLock()
-	Refresh()
-	Print("the bar is not locked. Move it with the left mouse button.")
+commands.show = function()
+	if timers.own and not db.dismissed then
+		Print("the box shows already.")
+	else
+		ToggleBox()
+	end
+end
+
+commands.minimap = function()
+	db.minimap = db.minimap == false
+	if minimapButton then minimapButton:SetShown(db.minimap) end
+	Print(db.minimap and "the minimap button shows." or "the minimap button is hidden. Type /cft minimap to show it.")
 end
 
 commands.reset = function()
 	db.point = nil
+	db.dismissed = nil
 	db.locked = true
 	db.duration = DEFAULT_DURATION
 	db.spells = {}
@@ -411,6 +551,7 @@ commands.stop = function()
 	timers.own = nil
 	timers.other = nil
 	db.ownEnd = nil
+	db.dismissed = nil
 	Refresh()
 	Print("all countdowns stopped.")
 end

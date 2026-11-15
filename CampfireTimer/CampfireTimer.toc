@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: Campfire Timer
 ## Notes: Shows the remaining life of your campfire as a small countdown bar. Type /cft for the commands.
-## Version: 0.1.0
+## Version: 0.2.0
 ## Author: Kevin
 ## SavedVariables: CampfireTimerDB
 ## X-License: MIT
