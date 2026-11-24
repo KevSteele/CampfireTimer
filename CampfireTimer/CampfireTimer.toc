@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: Campfire Timer
-## Notes: Shows the remaining life of your campfire as a small countdown bar. Type /cft for the commands.
-## Version: 0.2.0
+## Notes: Shows the remaining life of your campfire, your camp items, and your sleeping bag. Type /cft for the commands.
+## Version: 0.3.0
 ## Author: Kevin
 ## SavedVariables: CampfireTimerDB
 ## X-License: MIT
@@ -9,4 +9,5 @@
 ## X-Website: https://github.com/KevSteele/CampfireTimer
 ## X-Curse-Project-ID: 1806491
 
+Data.lua
 CampfireTimer.lua
