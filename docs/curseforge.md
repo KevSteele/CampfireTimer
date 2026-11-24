@@ -52,3 +52,7 @@ The camping system of WoW Forever makes the campfire important. The game shows n
 ## Feedback
 
 Tell me about errors in the comments. Include the text of the error and what you did.
+
+## Source
+
+The source is on GitHub: https://github.com/KevSteele/CampfireTimer
